@@ -276,10 +276,10 @@ class Scope extends EventEmitter {
     )
   }
 
-  buildFilter() {
-    const filteringArguments = Array.from(arguments) as any[]
+  buildFilter(...args: any[]) {
+    const filteringArguments = Array.from(args)
 
-    if (arguments[0] instanceof RegExp) {
+    if (args[0] instanceof RegExp) {
       return function (candidate: string) {
         /* istanbul ignore if */
         if (typeof candidate !== 'string') {
@@ -289,13 +289,17 @@ class Scope extends EventEmitter {
         }
         return candidate.replace(filteringArguments[0], filteringArguments[1])
       }
-    } else if (typeof arguments[0] === 'function') {
-      return arguments[0]
+    } else if (typeof args[0] === 'function') {
+      return args[0]
     }
   }
 
-  filteringPath() {
-    this.transformPathFunction = this.buildFilter.apply(this, arguments as any)
+  filteringPath(regex: RegExp, replace: string): this
+  filteringPath(fn: (path: string) => string): this
+  filteringPath(
+    ...args: [RegExp, string] | [(path: string) => string] | any[]
+  ): this {
+    this.transformPathFunction = this.buildFilter.apply(this, args)
     if (!this.transformPathFunction) {
       throw new Error(
         'Invalid arguments: filtering path should be a function or a regular expression',
@@ -304,11 +308,15 @@ class Scope extends EventEmitter {
     return this
   }
 
-  filteringRequestBody() {
-    this.transformRequestBodyFunction = this.buildFilter.apply(
-      this,
-      arguments as any,
-    )
+  filteringRequestBody(regex: RegExp, replace: string): this
+  filteringRequestBody(fn: (body: string, recordedBody: string) => string): this
+  filteringRequestBody(
+    ...args:
+      | [RegExp, string]
+      | [(body: string, recordedBody: string) => string]
+      | any[]
+  ): this {
+    this.transformRequestBodyFunction = this.buildFilter.apply(this, args)
     if (!this.transformRequestBodyFunction) {
       throw new Error(
         'Invalid arguments: filtering request body should be a function or a regular expression',
